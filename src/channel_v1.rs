@@ -1,14 +1,27 @@
 use std::{
     collections::VecDeque,
+    error::Error,
+    fmt::{Display, Write},
     sync::{Arc, Condvar, Mutex, Weak},
 };
+
+#[derive(Debug)]
+struct SendError;
+
+impl Display for SendError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self))
+    }
+}
+
+impl Error for SendError {}
 
 struct Sender<T> {
     shared: Weak<Shared<T>>,
 }
 
 impl<T> Sender<T> {
-    fn send(&self, value: T) -> anyhow::Result<()> {
+    fn send(&self, value: T) -> Result<(), SendError> {
         let share = match self.shared.upgrade() {
             Some(share) => share,
             None => panic!("Sender send value but the Receiver has closed."),
